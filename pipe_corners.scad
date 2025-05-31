@@ -1,8 +1,10 @@
 pipeWidth = 12;
-pipeHeight = 9;
+pipeHeight = 7;
 edge = 2;
 margin = 0.5;
-type = "hookRight"; // [hookRight, hookUp, hookDown]
+type = "adapter"; // [hookRight, hookUp, hookDown, adapter]
+adapterPipeWidth = 25 - edge * 2 - margin * 2;
+adapterPipeHeight = 9;
 
 totalWidth = pipeWidth + (edge * 2) + margin * 2;
 totalHeight = pipeHeight + edge + margin;
@@ -13,9 +15,11 @@ if (type == "hookRight") {
   hookUp();
 } else if (type == "hookDown") {
   hookDown();
+} else if (type == "adapter") {
+    
 }
 
-module pipeShell() {
+module pipeShell(totalWidth, totalHeight, pipeWidth, pipeHeight) {
   difference() {
     cube(size = [totalWidth, totalWidth, totalHeight]);
     translate([edge, edge, edge]) {
@@ -24,38 +28,38 @@ module pipeShell() {
   }
 }
 
-module horizontalOpening() {
+module horizontalOpening(totalWidth, totalHeight) {
     cube([totalWidth - edge * 2, edge + margin, totalHeight - edge]);
 }
 
-module verticalOpening() {
+module verticalOpening(totalWidth, totalHeight) {
     cube([edge + margin, totalWidth - edge * 2, totalHeight - edge]);
 }
 
-module pipeOpen(direction) {
+module pipeOpen(direction, totalWidth, totalHeight, pipeWidth, pipeHeight) {
   if (direction == "left")
   {
     difference() {
-      pipeShell();
-      translate ([0, edge, edge]) verticalOpening();
+      pipeShell(totalWidth, totalHeight, pipeWidth, pipeHeight);
+      translate ([0, edge, edge]) verticalOpening(totalWidth, totalHeight);
     }
   } else if (direction == "right")
   {
     difference() {
-      pipeShell();
-      translate ([pipeWidth + edge + margin, edge, edge]) verticalOpening();
+      pipeShell(totalWidth, totalHeight, pipeWidth, pipeHeight);
+      translate ([pipeWidth + edge + margin, edge, edge]) verticalOpening(totalWidth, totalHeight);
     }
   } else if (direction == "bottom")
   {
     difference() {
-      pipeShell();
-      translate ([edge, 0, edge]) horizontalOpening();
+      pipeShell(totalWidth, totalHeight, pipeWidth, pipeHeight);
+      translate ([edge, 0, edge]) horizontalOpening(totalWidth, totalHeight);
     }
   } else if (direction == "top")
   {
     difference() {
-      pipeShell();
-      translate ([edge, totalWidth - edge, edge]) horizontalOpening();
+      pipeShell(totalWidth, totalHeight, pipeWidth, pipeHeight);
+      translate ([edge, totalWidth - edge, edge]) horizontalOpening(totalWidth, totalHeight);
     }
   }
 }
@@ -63,19 +67,19 @@ module pipeOpen(direction) {
 module rightHook() {
     union() {
       intersection() {
-          pipeOpen("bottom");
-          pipeOpen("top");
+          pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+          pipeOpen("top", totalWidth, totalHeight, pipeWidth, pipeHeight);
       }
       translate([totalWidth, totalWidth, 0]) {
           intersection() {
-            pipeOpen("right");
-            pipeOpen("left");
+            pipeOpen("right", totalWidth, totalHeight, pipeWidth, pipeHeight);
+            pipeOpen("left", totalWidth, totalHeight, pipeWidth, pipeHeight);
           }
       }
       translate([0, totalWidth, 0]) {
           intersection() {
-            pipeOpen("bottom");
-            pipeOpen("right");
+            pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+            pipeOpen("right", totalWidth, totalHeight, pipeWidth, pipeHeight);
           }
       }
     }
@@ -84,13 +88,13 @@ module rightHook() {
 module hookUp() {
     union() {
       intersection() {
-          pipeOpen("bottom");
-          pipeOpen("top");
+          pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+          pipeOpen("top", totalWidth, totalHeight, pipeWidth, pipeHeight);
       }
       translate([0, totalWidth, 0]) rotate([90,0,0])  {
           intersection() {
-            pipeOpen("bottom");
-            pipeOpen("top");
+            pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+            pipeOpen("top", totalWidth, totalHeight, pipeWidth, pipeHeight);
           }
       }
     }
@@ -99,20 +103,49 @@ module hookUp() {
 module hookDown() {
     union() {
       rotate([180,0,0]) translate([0, -totalWidth, -totalHeight]) intersection() {
-          pipeOpen("bottom");
-          pipeOpen("top");
+          pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+          pipeOpen("top", totalWidth, totalHeight, pipeWidth, pipeHeight);
       }
       translate([totalWidth, totalWidth, totalHeight]) rotate([90, 0,180]) {
           intersection() {
-            pipeOpen("bottom");
-            pipeOpen("top");
+            pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+            pipeOpen("top", totalWidth, totalHeight, pipeWidth, pipeHeight);
           }
       }
     }
     translate([0, totalWidth, 0]) scale([1, totalHeight / totalWidth, 1])  {
           intersection() {
-              pipeOpen("bottom");
-              pipeOpen("top");
+              pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+              pipeOpen("top", totalWidth, totalHeight, pipeWidth, pipeHeight);
       }
+    }
+}
+
+module adapter() {
+    union () {
+        intersection() {
+            pipeOpen("left", totalWidth, totalHeight, pipeWidth, pipeHeight);
+            pipeOpen("right", totalWidth, totalHeight, pipeWidth, pipeHeight);
+            pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+        }
+        
+        translate([pipeWidth - edge * 2, 0, 0]) intersection() {
+            pipeOpen("left", totalWidth, totalHeight, pipeWidth, pipeHeight);
+            pipeOpen("bottom", totalWidth, totalHeight, pipeWidth, pipeHeight);
+        }
+        difference() {
+            translate([0, - adapterPipeWidth - edge - margin * 2, -(adapterPipeHeight - pipeHeight)]) {
+                        pipeOpen("bottom", adapterPipeWidth + (edge * 2) + margin * 2, adapterPipeHeight + edge + margin, adapterPipeWidth, adapterPipeHeight);
+            }
+
+            translate([adapterPipeWidth / 2 - pipeWidth + margin * 2 + edge * 2, 0, 0]) {
+                pipeOpen("top", totalWidth - edge, totalHeight, pipeWidth, pipeHeight);
+            }
+            translate([pipeWidth - margin * 4, 0, 0]) intersection() {
+                translate([adapterPipeWidth / 2 - pipeWidth + margin + edge, 0, 0]) {
+                    pipeOpen("top", totalWidth - edge, totalHeight, pipeWidth, pipeHeight);
+                }
+            }
+        }
     }
 }
